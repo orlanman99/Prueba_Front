@@ -1,0 +1,73 @@
+name: Deploy to Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  project_name: Prueba_Front
+  cache_path: node_modules
+  language: javascript
+  build_folder: dist
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: development
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+
+      - name: Restore cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.cache_path }}
+          key: npm-${{ env.project_name }}-${{ hashFiles('**/package.json') }}
+          restore-keys: npm-${{ env.project_name }}
+
+      - name: Install Dependencies
+        run: npm i
+
+      - run: npm run build
+
+      - name: Persist Data
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+
+      - name: Restore cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.cache_path }}
+          key: npm-${{ env.project_name }}-${{hashFiles('**/package.json') }}
+          restore-keys: npm-${{ env.project_name }}
+      - name: Running Test
+        run: |
+          npm run test
+      - name: Persist Data
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage
+          path: coverage
+          retention-days: 1
